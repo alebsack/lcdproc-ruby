@@ -157,7 +157,7 @@ module LCDProc
     #    * :alert
     #    * :input
     def priority=( other )
-      if other.kind_of? Fixnum or ( other.kind_of? Symbol and Screen::PRIORITIES.inlcude? other )
+      if other.kind_of? Fixnum or ( other.kind_of? Symbol and Screen::PRIORITIES.include? other )
         
         @priority = other
         
