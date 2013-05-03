@@ -58,6 +58,8 @@ module LCDProc
       @menu_events = []
       @global_key_events = []
       @current_screen = nil
+
+      @menu = Menu.new( self )
       
       options = {}
       
@@ -68,37 +70,32 @@ module LCDProc
       # Update our defaults with anything that they passed in
       options.update( user_options )
       
-      Fiber.new do
-        @connection = EventMachine.connect(options[:host], options[:port], Connection, self)
+      @connection = EventMachine.connect(options[:host], options[:port], Connection, self)
+    
+      response = send_command( Command.new( "hello" ) )
+      response = response.message.split(' ')
+
+      @version      = response[2]
+      @protocol     = response[4]
+      @width        = response[7]
+      @height       = response[9]
+      @cell_width   = response[11]
+      @cell_height  = response[13]
+            
+      response = send_command( Command.new( "info" ) )
+      driver_info = response.message
+
+      LCDProc::Devices.find_all_that_drive( driver_info ).each do |device|
+        LCDProc::Client.send( :include, device )
+      end
+            
+      @name = options[:name]
       
-        response = send_command( Command.new( "hello" ) )
-        response = response.message.split(' ')
-
-        @version      = response[2]
-        @protocol     = response[4]
-        @width        = response[7]
-        @height       = response[9]
-        @cell_width   = response[11]
-        @cell_height  = response[13]
-              
-        @menu = Menu.new( self )
-
-        response = send_command( Command.new( "info" ) )
-        driver_info = response.message
-
-        LCDProc::Devices.find_all_that_drive( driver_info ).each do |device|
-          LCDProc::Client.send( :include, device )
-        end
-              
-        @name = options[:name]
-              
-        response = send_command( Command.new( "client_set -name #{@name}" ) )
-              
-        @@client_count += 1
-              
-        if self.respond_to?( :after_initialize ) then self.send( :after_initialize, options ) end
-      end.resume
-      
+      response = send_command( Command.new( "client_set -name #{@name}" ) )
+            
+      @@client_count += 1
+            
+      if self.respond_to?( :after_initialize ) then self.send( :after_initialize, options ) end
     end
     
     
